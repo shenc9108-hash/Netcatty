@@ -30,6 +30,19 @@ function subscribe(event: string, id: string, cb: Cb): () => void {
 }
 
 const impl: Record<string, any> = {
+  // ---------- App lock: report "initialized, unlocked" so AppLockGate renders the UI ----------
+  getAppLockRuntimeState: async () => ({
+    initialized: true, locked: false, reason: null, version: 1,
+    lastLockedAt: null, lastUnlockedAt: Date.now(), lastActivityAt: Date.now(),
+  }),
+  requestAppLockUnlock: async () => ({ ok: true }),
+  setAppLockRuntimeLocked: async () => ({ ok: true }),
+  reportAppLockActivity: () => {},
+  notifyRendererReady: () => {},
+  getAppLockSystemUnlockStatus: async () => ({
+    supported: false, available: false, enabled: false, platform: 'unsupported', label: null, reason: null,
+  }),
+
   // ---------- credentials (Android Keystore, AES-GCM, "enc:v1:" prefix) ----------
   credentialsEncrypt: (plaintext: string) =>
     Native.credentialsEncrypt({ plaintext }).then((r: any) => r.value),
@@ -76,6 +89,7 @@ const impl: Record<string, any> = {
 
 if (IS_ANDROID) {
 // Unimplemented API -> harmless stubs so the UI never crashes on a missing method.
+// Getter-style calls resolve to null/false (callers usually guard with ?? / ||), others to {ok:false}.
 const warned = new Set<string>();
 (window as any).netcatty = new Proxy(impl, {
   get(target, prop: string) {
@@ -83,7 +97,35 @@ const warned = new Set<string>();
     if (typeof prop !== 'string') return undefined;
     if (!warned.has(prop)) { warned.add(prop); console.warn('[android] netcatty.' + prop + ' not implemented'); }
     if (/^on[A-Z]/.test(prop)) return () => () => {};
+    if (/^(is|has|can)[A-Z]/.test(prop)) return async () => false;
+    if (/^(get|list|read|load|fetch|query|detect|find|resolve)[A-Z]/.test(prop)) return async () => null;
     return async () => ({ ok: false, error: `Not available on Android: ${prop}` });
   },
 });
+
+// ---------- On-screen diagnostics: turns a silent white screen into readable text ----------
+const errors: string[] = [];
+function showDiag(reason: string) {
+  let el = document.getElementById('android-diag');
+  if (!el) {
+    el = document.createElement('pre');
+    el.id = 'android-diag';
+    el.style.cssText = 'position:fixed;inset:0;z-index:2147483647;margin:0;padding:16px;overflow:auto;' +
+      'background:#111;color:#f88;font:12px/1.4 monospace;white-space:pre-wrap;';
+    document.body.appendChild(el);
+  }
+  el.textContent = `[Netcatty Android diagnostics] ${reason}\n\n` +
+    `Errors:\n${errors.join('\n---\n') || '(none)'}\n\n` +
+    `Unimplemented bridge calls:\n${[...warned].join(', ') || '(none)'}\n\n(tap to dismiss)`;
+  el.onclick = () => el!.remove();
+}
+window.addEventListener('error', (e) => { errors.push(String(e.error?.stack || e.message)); showDiag('uncaught error'); });
+window.addEventListener('unhandledrejection', (e) => {
+  errors.push('unhandledrejection: ' + String((e.reason as any)?.stack || e.reason)); showDiag('unhandled promise rejection');
+});
+// Watchdog: if nothing rendered into #root after 10s, show what we know.
+setTimeout(() => {
+  const root = document.getElementById('root');
+  if (!root || root.childElementCount === 0) showDiag('UI did not render within 10s');
+}, 10000);
 }
