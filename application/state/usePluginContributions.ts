@@ -126,7 +126,17 @@ export function usePluginContributions(
       }
       const nextSnapshot = await bridge.getPluginContributions(JSON.parse(queryKey));
       if (!isCurrent()) return;
-      setLoadedSnapshot({ queryKey, snapshot: nextSnapshot });
+      // Never trust the shape of a bridge response. A stub or an older host build can
+      // omit `plugins`, which used to surface as "Cannot read properties of undefined
+      // (reading 'filter')" inside settings tabs that read the snapshot synchronously.
+      setLoadedSnapshot({
+        queryKey,
+        snapshot: {
+          ...nextSnapshot,
+          plugins: Array.isArray(nextSnapshot?.plugins) ? nextSnapshot.plugins : [],
+          locale: nextSnapshot?.locale ?? 'en',
+        } as NetcattyPluginContributionSnapshot,
+      });
       setError(null);
     } catch (cause) {
       if (!isCurrent()) return;

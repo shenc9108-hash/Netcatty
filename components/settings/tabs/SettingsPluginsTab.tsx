@@ -58,8 +58,10 @@ export default function SettingsPluginsTab() {
   const opener = useRef<HTMLElement | null>(null);
   const managerButton = useRef<HTMLButtonElement | null>(null);
   const contributions = usePluginContributions({ locale, context: { 'netcatty.surface': 'settings' } });
-  const settingsAvailable = useMemo(() => new Set(contributions.snapshot.plugins
-    .filter((plugin) => plugin.settings.some((setting) => setting.visible))
+  const settingsAvailable = useMemo(() => new Set((contributions.snapshot?.plugins ?? [])
+    // A bridge stub or a partial host response can leave `settings` undefined on a
+    // contribution entry; filter those out rather than throwing during render.
+    .filter((plugin) => (plugin?.settings ?? []).some((setting) => setting?.visible))
     .map((plugin) => plugin.id)), [contributions.snapshot]);
   return (
     <SettingsTabContent value="plugins">

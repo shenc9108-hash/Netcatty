@@ -161,6 +161,14 @@ const EMPTY_OBJECT_APIS: Record<string, () => unknown> = {
   getPluginPermissions: () => ({ granted: [], denied: [], revision: 0 }),
   getPluginLogStatus: () => ({ entries: [], level: 'info' }),
   getPluginScopeCatalog: () => ({ scopes: [], revision: 0 }),
+  // The plugin runtime is absent on Android. available:false makes every consumer
+  // (usePluginContributions / settings tabs) take the empty-snapshot path instead of
+  // reading named fields off a stub. Returning {ok:false} here left `available`
+  // undefined and downstream code threw "Cannot read properties of undefined (reading 'filter')".
+  getPluginRuntimeStatus: () => ({ available: false, status: 'unavailable', plugins: [], error: null }),
+  getPluginCatalog: () => ({ plugins: [], revision: 0, sources: [] }),
+  getPluginInstalledList: () => [],
+  getPluginLogStatusDetail: () => ({ entries: [], level: 'info' }),
   getAppInfo: () => ({ version: '0.0.0', platform: 'android', arch: 'arm64', isPackaged: true }),
   getSystemInfo: () => ({ platform: 'android', arch: 'arm64', cpus: [], totalmem: 0, freemem: 0 }),
   getUpdateStatus: () => ({ status: 'not-available', available: false }),
