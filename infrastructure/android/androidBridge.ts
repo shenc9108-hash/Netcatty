@@ -302,12 +302,12 @@ phoneCss.textContent = `
   /* Right-hand detail panels (host editor etc.) take the whole content area on phones. */
   html.android .split-panel-enter { position: absolute !important; inset: 0; width: 100% !important; max-width: 100% !important; z-index: 40; }
 
-  /* ---- Side panels (AI chat, notes, sftp, ...) on phones --------------------
-     The panel shell is a flex-shrink-0 sibling of the terminal inside a flex ROW
-     and is sized inline with width: shellSize. A phone (~400px) cannot fit the
-     280px minimum panel plus the 320px terminal minimum, so the terminal was
-     pushed off-screen. Stack the two panes: panel on top, terminal below, each
-     with a bounded share of the height so both stay reachable. */
+  /* ---- Side panels on phones -------------------------------------------------
+     Android forces the bottom dock (see TerminalLayer: sidePanelPosition), so the
+     panel stacks above the terminal and the built-in vertical resize handle stays
+     usable. These rules only remove the desktop assumptions that break there:
+     do not let the flex ROW push the terminal off-screen, and keep both panes
+     within the viewport. Heights stay under the app's control so dragging works. */
   html.android [data-section="terminal-workspace"] {
     flex-direction: column !important;
   }
@@ -315,20 +315,18 @@ phoneCss.textContent = `
     width: 100% !important;
     max-width: 100% !important;
     min-width: 0 !important;
-    height: 55% !important;
-    max-height: 55% !important;
     flex: 0 0 auto !important;
-    order: -1 !important;
   }
-  /* The drag handle only makes sense in the side-by-side desktop layout. */
-  html.android [data-section="terminal-side-panel-resizer"] { display: none !important; }
-
-  /* The terminal row takes the remaining height and must never widen the page. */
   html.android [data-section="terminal-workspace-row"],
   html.android [data-section="terminal-workspace-column"] {
     min-width: 0 !important;
     min-height: 0 !important;
-    flex: 1 1 auto !important;
+  }
+  /* The resize handle is a 8px strip; make it easier to grab with a finger. */
+  html.android [data-section="terminal-side-panel-resizer"] {
+    height: 14px !important;
+    top: -7px !important;
+    touch-action: none;
   }
 `;
 document.head.appendChild(phoneCss);

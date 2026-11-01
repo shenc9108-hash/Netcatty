@@ -788,11 +788,21 @@ const TerminalLayerInner: React.FC<TerminalLayerProps> = ({
     420,
     { min: TERMINAL_SIDE_PANEL_MIN_WIDTH, max: TERMINAL_SIDE_PANEL_MAX_WIDTH },
   );
-  const [sidePanelPosition, setSidePanelPosition] = useStoredString<'left' | 'right' | 'bottom'>(
+  // A phone cannot show a side panel and a terminal side by side: the panel's
+  // 280px minimum plus the terminal's 320px minimum does not fit in ~400px, so the
+  // terminal ends up off-screen. On Android the bottom dock is the only usable
+  // arrangement: the panel stacks above the terminal and the existing vertical
+  // resize handle keeps working. A previously stored left/right value is ignored
+  // there, because it can only re-create the unusable layout.
+  const isAndroidShell =
+    typeof document !== 'undefined' && document.documentElement.classList.contains('android');
+  const [rawSidePanelPosition, setSidePanelPosition] = useStoredString<'left' | 'right' | 'bottom'>(
     'netcatty_side_panel_position',
     'left',
     isSidePanelDockPosition,
   );
+  const sidePanelPosition: 'left' | 'right' | 'bottom' =
+    isAndroidShell ? 'bottom' : rawSidePanelPosition;
   const [sidePanelHeight, setSidePanelHeight, persistSidePanelHeight] = useStoredNumber(
     STORAGE_KEY_SIDE_PANEL_HEIGHT,
     360,
