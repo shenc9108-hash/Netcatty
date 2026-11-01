@@ -148,6 +148,13 @@ phoneCss.textContent = `
     padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); box-sizing: border-box; }
   html.android .app-drag { -webkit-app-region: no-drag; }
   html.android button, html.android [role="button"] { touch-action: manipulation; }
+  /* Fill the real visible height (100vh overshoots in WebView -> bottom bar cut off). */
+  html.android, html.android body { height: 100%; }
+  html.android #root { height: 100dvh; }
+  html.android .h-screen { height: 100% !important; }
+  html.android .min-h-screen { min-height: 100% !important; }
+  /* Right-hand detail panels (host editor etc.) take the whole content area on phones. */
+  html.android .split-panel-enter { position: absolute !important; inset: 0; width: 100% !important; max-width: 100% !important; z-index: 40; }
 `;
 document.head.appendChild(phoneCss);
 window.addEventListener('hashchange', () => window.location.reload());

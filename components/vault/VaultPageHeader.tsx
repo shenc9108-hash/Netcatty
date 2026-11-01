@@ -26,7 +26,7 @@ export function VaultPageHeader({
     >
       <div
         className={cn(
-          "h-14 px-4 py-2 flex items-center gap-3 app-no-drag",
+          "h-14 max-md:h-auto max-md:min-h-14 max-md:flex-wrap px-4 py-2 flex items-center gap-3 max-md:gap-2 app-no-drag",
           contentClassName,
         )}
       >
@@ -50,7 +50,7 @@ export function VaultHeaderSearch({
   ...props
 }: VaultHeaderSearchProps) {
   return (
-    <div className={cn("relative min-w-[100px]", className)}>
+    <div className={cn("relative min-w-[100px] max-md:basis-full", className)}>
       <Search
         size={14}
         className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"

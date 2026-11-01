@@ -339,8 +339,8 @@ export function VaultViewLayout({ ctx }: { ctx: VaultViewLayoutContext }) {
     shouldHideEmptyRootHostsSection,
     showRecentHosts,
     hostClickBehavior,
-    sidebarCollapsed,
-    sidebarWidth,
+    sidebarCollapsed: sidebarCollapsedFromCtx,
+    sidebarWidth: sidebarWidthFromCtx,
     snippetPackages,
     snippets,
     SnippetsManager,
@@ -381,6 +381,12 @@ export function VaultViewLayout({ ctx }: { ctx: VaultViewLayoutContext }) {
     X,
     Zap,
   } = ctx;
+  // Phones: keep the sidebar as a 56px icon rail so the content area gets the full width.
+  const isAndroidShell =
+    typeof document !== "undefined" &&
+    document.documentElement.classList.contains("android");
+  const sidebarCollapsed = isAndroidShell || sidebarCollapsedFromCtx;
+  const sidebarWidth = isAndroidShell ? 56 : sidebarWidthFromCtx;
   const {
     knownHosts,
     NotebookText,
