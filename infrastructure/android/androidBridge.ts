@@ -56,6 +56,17 @@ const impl: Record<string, any> = {
   getJmsDeepLinkEnabled: async () => false,
   getAutoLaunch: async () => false,
 
+  // ---------- Window management: Android has a single full-screen window ----------
+  // Settings is a separate BrowserWindow on desktop (#/settings route). Here we navigate in-page;
+  // the hashchange listener below reloads so index.tsx re-evaluates the route.
+  openSettingsWindow: async () => { window.location.hash = '#/settings'; return { ok: true }; },
+  closeSettingsWindow: async () => { window.location.hash = ''; return { ok: true }; },
+  windowMinimize: async () => undefined,
+  windowMaximize: async () => false,
+  windowClose: async () => undefined,
+  windowIsMaximized: async () => false,
+  windowIsFullscreen: async () => false,
+
   // ---------- Features that do not exist on Android ----------
   // monitorSnapshot MUST reject: the renderer catches that and shows "monitor unavailable".
   // Resolving to the generic {ok:false} stub put a snapshot without `running` into the store and
@@ -127,6 +138,19 @@ const warned = new Set<string>();
     return async () => ({ ok: false, error: `Not available on Android: ${prop}` });
   },
 });
+
+// ---------- Phone chrome: android class, safe-area insets, touch tweaks, route reload ----------
+document.documentElement.classList.add('android');
+const phoneCss = document.createElement('style');
+phoneCss.textContent = `
+  html.android, html.android body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
+  html.android #root { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); box-sizing: border-box; }
+  html.android .app-drag { -webkit-app-region: no-drag; }
+  html.android button, html.android [role="button"] { touch-action: manipulation; }
+`;
+document.head.appendChild(phoneCss);
+window.addEventListener('hashchange', () => window.location.reload());
 
 // ---------- On-screen diagnostics: turns a silent white screen into readable text ----------
 const errors: string[] = [];

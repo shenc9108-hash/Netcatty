@@ -459,11 +459,11 @@ const SettingsPageContent: React.FC<{ settings: SettingsState; appLock?: AppLock
                 value={activeTab}
                 onValueChange={handleTabChange}
                 orientation="vertical"
-                className="flex-1 flex overflow-hidden"
+                className="flex-1 flex flex-col md:flex-row overflow-hidden"
             >
-                <div className="w-56 border-r border-border flex flex-col shrink-0 px-3 py-3">
+                <div className="w-full md:w-56 border-b md:border-b-0 md:border-r border-border flex flex-col shrink-0 px-3 py-2 md:py-3 max-w-full">
                     <SettingsSearchControl includePlugins={pluginRuntimeAvailable} />
-                    <TabsList className="flex flex-col h-auto bg-transparent gap-1 p-0 justify-start">
+                    <TabsList className="flex flex-row md:flex-col h-auto bg-transparent gap-1 p-0 justify-start overflow-x-auto md:overflow-visible [&>*]:shrink-0">
                         <TabsTrigger
                             value="application"
                             className={settingsTabTriggerClassName}
