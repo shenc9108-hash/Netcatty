@@ -178,6 +178,41 @@ const EMPTY_OBJECT_APIS: Record<string, () => unknown> = {
   getAppInfo: () => ({ version: '0.0.0', platform: 'android', arch: 'arm64', isPackaged: true }),
   getSystemInfo: () => ({ platform: 'android', arch: 'arm64', cpus: [], totalmem: 0, freemem: 0 }),
   getUpdateStatus: () => ({ status: 'not-available', available: false }),
+
+  // ---- Settings > System ----------------------------------------------------
+  // Every one of these is read directly into component state and then used as an
+  // array (crashLogs.length, logEntries.length, ...). The generic {ok:false} stub
+  // made them objects, which crashed the tab with
+  // "Cannot read properties of undefined (reading 'length')".
+  getCrashLogs: () => [],
+  readCrashLog: () => [],
+  getTempDirInfo: () => ({ path: '', isCustom: false, sizeBytes: 0, fileCount: 0, defaultPath: '' }),
+  getSshDebugLogInfo: () => ({ enabled: false, path: '', sizeBytes: 0, defaultPath: '' }),
+  clearCrashLogs: () => ({ ok: true, removed: 0 }),
+  clearTempDir: () => ({ ok: true, removed: 0, freedBytes: 0 }),
+  setCustomTempDir: () => ({ ok: true }),
+  selectSessionLogsDir: () => null,
+  clearSessionLogsDir: () => ({ ok: true, removed: 0 }),
+  openCrashLogsDir: async () => undefined,
+  openTempDir: async () => undefined,
+  openSessionLogsDir: async () => undefined,
+  openSshDebugLogDir: async () => undefined,
+
+  // ---- Settings > AI --------------------------------------------------------
+  // SettingsAITab reads result.skills.length / .map and treats the Codex CLI as
+  // absent. Shape these so the tab renders its "not available" state instead of
+  // throwing on a missing field.
+  aiUserSkillsGetStatus: () => ({ ok: false, skills: [], error: 'Not available on Android' }),
+  aiUserSkillsOpenFolder: () => ({ ok: false }),
+  aiCodexGetStatus: () => ({ available: false, status: 'unavailable', version: null }),
+  aiCodexGetIntegration: () => ({ installed: false, enabled: false, version: null }),
+  aiCodexGetLoginSession: () => ({ status: 'signed-out', session: null }),
+  aiCodexStartLogin: () => ({ ok: false, status: 'unavailable' }),
+  aiCodexCancelLogin: () => ({ ok: false }),
+  aiCodexLogout: () => ({ ok: false }),
+  codexAppServerGetStatus: () => ({ running: false, status: 'unavailable' }),
+  aiResolveCli: () => ({ available: false, path: null }),
+  aiPrewarmShellEnv: async () => undefined,
 };
 
 (window as any).netcatty = new Proxy(impl, {

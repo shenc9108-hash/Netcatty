@@ -273,7 +273,9 @@ const SettingsSystemTab: React.FC<SettingsSystemTabProps> = ({
     setIsLoadingCrashLogs(true);
     try {
       const logs = await bridge.getCrashLogs();
-      setCrashLogs(logs);
+      // A stub host may answer with a non-array; the render path reads .length
+      // and .map, so normalise before it reaches state.
+      setCrashLogs(Array.isArray(logs) ? logs : []);
     } catch (err) {
       console.error("[SettingsSystemTab] Failed to load crash logs:", err);
     } finally {
@@ -320,7 +322,7 @@ const SettingsSystemTab: React.FC<SettingsSystemTabProps> = ({
       const entries = await bridge.readCrashLog(fileName);
       // Discard if user clicked a different file while awaiting
       if (expandRequestRef.current !== requestId) return;
-      setLogEntries(entries);
+      setLogEntries(Array.isArray(entries) ? entries : []);
     } catch (err) {
       if (expandRequestRef.current !== requestId) return;
       console.error("[SettingsSystemTab] Failed to read crash log:", err);
