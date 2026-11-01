@@ -81,7 +81,7 @@
     "test:xterm-keyword-highlight-throughput": "electron scripts/xterm-keyword-highlight-throughput.live.test.cjs",
     "build:plugin-view-examples": "node scripts/build-plugin-view-examples.mjs",
     "test:plugin-host-drawn:electron": "electron electron/plugins/hostReactUi.live.test.cjs",
-    "android:sync": "vite build && cap sync android",
+    "android:sync": "npm run build && cap sync android",
     "android:open": "cap open android"
   },
   "dependencies": {

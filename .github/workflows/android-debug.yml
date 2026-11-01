@@ -27,7 +27,7 @@ jobs:
           npm install --ignore-scripts --no-audit --no-fund 2>&1 | tee /tmp/2-npm.log
           for f in scripts/patch-xterm-*.cjs; do node "$f" || true; done
       - name: Build web bundle
-        run: npx vite build 2>&1 | tee /tmp/3-vite.log
+        run: npm run build 2>&1 | tee /tmp/3-vite.log
         env: { NODE_OPTIONS: --max-old-space-size=6144 }
       - name: Sync Capacitor
         run: npx cap sync android 2>&1 | tee /tmp/4-cap.log
