@@ -5,28 +5,48 @@ on:
     branches: [android-port]
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
+    defaults:
+      run: { shell: bash }
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 22 }
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: 21 }
-      - uses: android-actions/setup-android@v3
+      - name: Android SDK (preinstalled on runner)
+        run: |
+          export ANDROID_HOME="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          SDKM="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKM" --licenses > /dev/null || true
+          "$SDKM" "platforms;android-36" "build-tools;36.0.0" 2>&1 | tee /tmp/1-sdk.log
+          echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
       - name: Install web deps (skip electron native rebuilds)
         run: |
-          npm install --ignore-scripts --no-audit --no-fund
+          npm install --ignore-scripts --no-audit --no-fund 2>&1 | tee /tmp/2-npm.log
           for f in scripts/patch-xterm-*.cjs; do node "$f" || true; done
       - name: Build web bundle
-        run: npx vite build
+        run: npx vite build 2>&1 | tee /tmp/3-vite.log
         env: { NODE_OPTIONS: --max-old-space-size=6144 }
       - name: Sync Capacitor
-        run: npx cap sync android
+        run: npx cap sync android 2>&1 | tee /tmp/4-cap.log
       - name: Build APK
         working-directory: android
-        run: chmod +x gradlew && ./gradlew assembleDebug --stacktrace
+        run: chmod +x gradlew && ./gradlew assembleDebug --stacktrace 2>&1 | tee /tmp/5-gradle.log
       - uses: actions/upload-artifact@v4
         with:
           name: netcatty-android-debug
           path: android/app/build/outputs/apk/debug/*.apk
+      - name: Surface errors as annotations
+        if: failure()
+        run: |
+          python3 - <<'PY'
+          import glob,re
+          for f in sorted(glob.glob('/tmp/[0-9]-*.log')):
+              t=open(f,errors='ignore').read()
+              lines=[l for l in t.splitlines() if re.search(r'error|fail|exception|went wrong|unresolved|cannot|not found|denied|ERR!',l,re.I)]
+              msg='\n'.join(lines[-25:])[-3500:] or t[-1500:]
+              msg=msg.replace('%','%25').replace('\r','').replace('\n','%0A')
+              print(f"::error title={f.split('/')[-1]}::{msg}")
+          PY
