@@ -19,7 +19,17 @@ function connectRuntime() {
     const current = ++request;
     try {
       const catalog = await bridge?.getPluginThemes?.();
-      if (active && current === request && catalog)
+      // A host stub (or an older host build) can return an object with the wrong
+      // field names. setCatalog() stores it verbatim and every reader then does
+      // catalog.entries.filter(...), which took down the Appearance tab. Require
+      // the real ThemePackCatalog shape before publishing anything.
+      const usable =
+        catalog &&
+        Array.isArray(catalog.entries) &&
+        Array.isArray(catalog.diagnostics) &&
+        catalog.selection &&
+        typeof catalog.selection.revision === 'number';
+      if (active && current === request && usable)
         pluginThemeRegistry.setCatalog(catalog);
     } catch {
       /* Keep the last host-validated selection; never apply unvalidated data. */

@@ -45,12 +45,21 @@ export const pluginThemeRegistry = {
     emit();
   },
   setCatalog(next: ThemePackCatalog) {
-    if (next.selection.revision < catalog.selection.revision) return;
-    catalog = next;
+    const selection = next?.selection ?? catalog.selection;
+    const revision = typeof selection?.revision === 'number' ? selection.revision : catalog.selection.revision;
+    if (revision < catalog.selection.revision) return;
+    catalog = {
+      ...next,
+      selection,
+      entries: Array.isArray(next?.entries) ? next.entries : [],
+      diagnostics: Array.isArray(next?.diagnostics) ? next.diagnostics : [],
+    };
     if (
       preview &&
-      (preview.revision !== next.selection.revision ||
-        !next.entries.some((e) => refKey(e.ref) === refKey(preview!.entry.ref)))
+      (preview.revision !== revision ||
+        !(Array.isArray(next?.entries) ? next.entries : []).some(
+          (e) => refKey(e.ref) === refKey(preview!.entry.ref),
+        ))
     )
       preview = null;
     emit();

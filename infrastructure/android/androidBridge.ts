@@ -156,7 +156,13 @@ const EMPTY_ARRAY_APIS = new Set([
 
 // Structured empty snapshots for APIs whose callers read named fields.
 const EMPTY_OBJECT_APIS: Record<string, () => unknown> = {
-  getPluginThemes: () => ({ themes: [], themePacks: [], selection: { revision: 0, mode: 'light', choice: null }, packs: [] }),
+  // Must match ThemePackCatalog exactly: the registry stores this verbatim and then
+  // reads catalog.entries / catalog.selection[mode] / catalog.diagnostics.
+  getPluginThemes: () => ({
+    selection: { formatVersion: 1, revision: 0, light: null, dark: null },
+    entries: [],
+    diagnostics: [],
+  }),
   getPluginContributions: () => ({ locale: 'en', plugins: [], revision: 0 }),
   getPluginPermissions: () => ({ granted: [], denied: [], revision: 0 }),
   getPluginLogStatus: () => ({ entries: [], level: 'info' }),
