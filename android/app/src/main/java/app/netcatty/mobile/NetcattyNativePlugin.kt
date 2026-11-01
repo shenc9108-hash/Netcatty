@@ -64,7 +64,6 @@ class NetcattyNativePlugin : Plugin() {
     private val streams = ConcurrentHashMap<String, Call>()
     private val execByChat = ConcurrentHashMap<String, MutableSet<Session>>()
     @Volatile private var providers: Map<String, JSONObject> = emptyMap()
-    private val UA = "Netcatty/1.0 (Android)"
     private val http: OkHttpClient = OkHttpClient.Builder()
         .retryOnConnectionFailure(true).callTimeout(0, TimeUnit.MILLISECONDS).build()
 
@@ -131,8 +130,6 @@ class NetcattyNativePlugin : Plugin() {
                 val hdr = injectKey(c.getObject("headers"), c.getString("providerId"))
                 val req = Request.Builder().url(c.getString("url")!!).apply {
                     hdr.forEach { (k, v) -> header(k, v) }
-                    // Desktop (Node) sends no "okhttp/x.y" User-Agent; some gateways/WAFs reject that one.
-                    if (hdr.keys.none { it.equals("User-Agent", ignoreCase = true) }) header("User-Agent", UA)
                     post((c.getString("body") ?: "").toRequestBody((hdr["Content-Type"] ?: "application/json").toMediaType()))
                 }.build()
                 val idle = (c.getInt("idleTimeoutMs") ?: 120000).toLong()
@@ -171,7 +168,6 @@ class NetcattyNativePlugin : Plugin() {
             val body = c.getString("body")
             val req = Request.Builder().url(c.getString("url")!!).apply {
                 hdr.forEach { (k, v) -> header(k, v) }
-                if (hdr.keys.none { it.equals("User-Agent", ignoreCase = true) }) header("User-Agent", UA)
                 method(method, if (body != null || method == "POST") (body ?: "").toRequestBody("application/json".toMediaType()) else null)
             }.build()
             http.newBuilder().followRedirects(c.getBoolean("followRedirects") ?: true)
