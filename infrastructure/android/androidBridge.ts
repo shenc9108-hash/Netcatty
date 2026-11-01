@@ -322,6 +322,10 @@ phoneCss.textContent = `
   html.android #root { height: 100dvh; }
   html.android .h-screen { height: 100% !important; }
   html.android .min-h-screen { min-height: 100% !important; }
+  /* Top tab strip: desktop tabs are 140-240px wide, so on a phone the close button of a host tab
+     ended up off-screen. Narrow tabs + a bigger close target keep it reachable without scrolling. */
+  html.android .netcatty-tab { min-width: 92px !important; max-width: 132px !important; padding-left: 8px !important; padding-right: 2px !important; gap: 4px !important; }
+  html.android .netcatty-tab button[aria-label] { padding: 6px !important; flex-shrink: 0; }
   /* Right-hand detail panels (host editor etc.) take the whole content area on phones. */
   html.android .split-panel-enter { position: absolute !important; inset: 0; width: 100% !important; max-width: 100% !important; z-index: 40; }
 
