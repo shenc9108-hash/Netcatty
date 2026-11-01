@@ -301,6 +301,43 @@ phoneCss.textContent = `
   html.android .min-h-screen { min-height: 100% !important; }
   /* Right-hand detail panels (host editor etc.) take the whole content area on phones. */
   html.android .split-panel-enter { position: absolute !important; inset: 0; width: 100% !important; max-width: 100% !important; z-index: 40; }
+
+  /* ---- Side panels (AI chat, notes, sftp, ...) on phones --------------------
+     terminal-workspace is a flex ROW: the side panel sits beside the terminal and
+     is sized with a pixel width (sidePanelWidth, applied inline). On a ~400px
+     viewport that squeezes the chat column and pushes the terminal off-screen.
+     Stack them vertically and let the side panel own the full width. */
+  html.android [data-section="terminal-workspace"] { flex-direction: column !important; }
+  html.android [data-section="terminal-side-panel-split"],
+  html.android [data-section="terminal-side-panel-pane"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    height: 100% !important;
+  }
+  /* The drag handle between panel and terminal is meaningless once stacked. */
+  html.android [data-section="terminal-side-panel-resizer"],
+  html.android [data-section="terminal-side-panel-split-resizer"] { display: none !important; }
+  html.android [data-section="terminal-workspace-column"] { min-width: 0 !important; }
+
+  /* Stop long lines in the conversation from forcing horizontal scroll. */
+  html.android [data-section="ai-chat-panel"],
+  html.android [data-section="ai-chat-panel"] * {
+    min-width: 0 !important;
+    overflow-wrap: anywhere;
+  }
+  html.android [data-section="ai-chat-panel"] pre,
+  html.android [data-section="ai-chat-panel"] code {
+    white-space: pre-wrap !important;
+    word-break: break-word !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+  }
+  html.android [data-section="ai-chat-panel"] table {
+    display: block !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+  }
 `;
 document.head.appendChild(phoneCss);
 window.addEventListener('hashchange', () => window.location.reload());
