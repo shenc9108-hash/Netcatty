@@ -43,6 +43,19 @@ const impl: Record<string, any> = {
     supported: false, available: false, enabled: false, platform: 'unsupported', label: null, reason: null,
   }),
 
+  // ---------- Safe defaults with the shapes the renderer expects ----------
+  // scriptGetRuns must resolve to an ARRAY; the generic {ok:false} stub made the UI read .length of a non-array.
+  scriptGetRuns: async () => [],
+  getAppLockSettings: async () => ({
+    enabled: false, timeoutMinutes: 15, systemUnlockEnabled: false,
+    systemUnlockAutoPromptEnabled: false, passwordVerifier: null,
+  }),
+  getAutoUpdate: async () => ({ enabled: false }),
+  getExplorerContextMenuEnabled: async () => false,
+  getSshDeepLinkEnabled: async () => false,
+  getJmsDeepLinkEnabled: async () => false,
+  getAutoLaunch: async () => false,
+
   // ---------- credentials (Android Keystore, AES-GCM, "enc:v1:" prefix) ----------
   credentialsEncrypt: (plaintext: string) =>
     Native.credentialsEncrypt({ plaintext }).then((r: any) => r.value),
@@ -98,6 +111,7 @@ const warned = new Set<string>();
     if (!warned.has(prop)) { warned.add(prop); console.warn('[android] netcatty.' + prop + ' not implemented'); }
     if (/^on[A-Z]/.test(prop)) return () => () => {};
     if (/^(is|has|can)[A-Z]/.test(prop)) return async () => false;
+    if (/^script(Get|List)[A-Z]/.test(prop) || /Runs$|List$/.test(prop)) return async () => [];
     if (/^(get|list|read|load|fetch|query|detect|find|resolve)[A-Z]/.test(prop)) return async () => null;
     return async () => ({ ok: false, error: `Not available on Android: ${prop}` });
   },
