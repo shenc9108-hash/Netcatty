@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Allow http:// to self-hosted / LAN model gateways (Ollama, vLLM, one-api...). Tighten if you can. -->
+<network-security-config>
+  <base-config cleartextTrafficPermitted="true"><trust-anchors><certificates src="system"/><certificates src="user"/></trust-anchors></base-config>
+</network-security-config>

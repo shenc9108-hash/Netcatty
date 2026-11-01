@@ -38,6 +38,9 @@
 !index.css
 !index.html
 !index.tsx
+!capacitor.config.ts
+!ANDROID.md
+!/android/
 !metadata.json
 !package-lock.json
 !package.json

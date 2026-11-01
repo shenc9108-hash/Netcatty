@@ -1,3 +1,4 @@
+import './infrastructure/android/androidBridge'; // no-op outside Android
 import { StrictMode, Suspense, lazy } from 'react';
 import ReactDOM from 'react-dom/client';
 import '@fontsource/mona-sans/400.css';
