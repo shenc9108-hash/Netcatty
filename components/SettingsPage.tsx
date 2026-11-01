@@ -73,7 +73,7 @@ type SettingsState = AppLockGateRenderContext["settings"];
 type AppLockState = AppLockGateRenderContext["appLock"];
 
 const settingsTabTriggerClassName =
-    "w-full justify-start gap-2 px-3 py-2 text-sm data-[state=active]:bg-background hover:bg-background/60 rounded-md transition-colors overflow-hidden";
+    "w-auto md:w-full justify-start gap-2 px-3 py-2 text-sm whitespace-nowrap md:whitespace-normal data-[state=active]:bg-background hover:bg-background/60 rounded-md transition-colors overflow-hidden";
 const settingsTabIconClassName = "shrink-0";
 const settingsTabLabelClassName = "min-w-0 truncate";
 
@@ -463,7 +463,7 @@ const SettingsPageContent: React.FC<{ settings: SettingsState; appLock?: AppLock
             >
                 <div className="w-full md:w-56 border-b md:border-b-0 md:border-r border-border flex flex-col shrink-0 px-3 py-2 md:py-3 max-w-full">
                     <SettingsSearchControl includePlugins={pluginRuntimeAvailable} />
-                    <TabsList className="flex flex-row md:flex-col h-auto bg-transparent gap-1 p-0 justify-start overflow-x-auto md:overflow-visible [&>*]:shrink-0">
+                    <TabsList className="flex flex-row flex-wrap md:flex-nowrap md:flex-col h-auto bg-transparent gap-1 p-0 justify-start">
                         <TabsTrigger
                             value="application"
                             className={settingsTabTriggerClassName}
