@@ -11,7 +11,23 @@ export function getTerminalSidePanelAvailableWidth(
   return Math.max(0, terminalLayerWidth - occupiedSiblingWidth);
 }
 
+/**
+ * A phone viewport cannot host a side panel and a terminal side by side: reserving
+ * TERMINAL_SIDE_PANEL_MIN_TERMINAL_WIDTH (320px) next to TERMINAL_SIDE_PANEL_MIN_WIDTH
+ * (280px) needs 600px before either pane is usable. On Android the bridge stacks the
+ * panel above the terminal instead, so the panel is allowed the full surface width.
+ */
+function isPhoneViewport(): boolean {
+  if (typeof window === 'undefined') return false;
+  return document.documentElement.classList.contains('android')
+    || window.innerWidth <= 600;
+}
+
 export function getTerminalSidePanelMaxWidth(availableSurfaceWidth: number): number {
+  if (isPhoneViewport()) {
+    // Panel and terminal are stacked, so nothing has to be reserved beside it.
+    return Math.max(TERMINAL_SIDE_PANEL_MIN_WIDTH, Math.min(TERMINAL_SIDE_PANEL_MAX_WIDTH, availableSurfaceWidth));
+  }
   const availableWidth = availableSurfaceWidth - TERMINAL_SIDE_PANEL_MIN_TERMINAL_WIDTH;
   return Math.max(
     TERMINAL_SIDE_PANEL_MIN_WIDTH,
@@ -24,6 +40,10 @@ export function clampTerminalSidePanelWidth(
   availableSurfaceWidth: number,
   contentMinimumWidth = TERMINAL_SIDE_PANEL_MIN_WIDTH,
 ): number {
+  // Stacks above the terminal on phones, so it may use the whole surface.
+  if (isPhoneViewport()) {
+    return Math.max(0, Math.min(availableSurfaceWidth, Math.max(width, TERMINAL_SIDE_PANEL_MIN_WIDTH)));
+  }
   const maximumWidth = getTerminalSidePanelMaxWidth(availableSurfaceWidth);
   const minimumWidth = Math.min(
     maximumWidth,
