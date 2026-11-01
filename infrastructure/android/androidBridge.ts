@@ -120,6 +120,25 @@ const impl: Record<string, any> = {
   execCommand: (options: any) => Native.sshExec({ ...options, timeoutMs: options?.timeoutMs ?? 60000 }),
   onSessionData: (sessionId: string, cb: Cb) => subscribe('sshData', sessionId, (p) => cb(p.data)),
   onSessionExit: (sessionId: string, cb: Cb) => subscribe('sshExit', sessionId, (p) => cb(p)),
+
+  // ---- AI privacy -----------------------------------------------------------
+  // infrastructure/ai/harness/modelPrivacy.ts refuses to send anything unless
+  // aiPrivacyStatus resolves ok with a boolean `enabled` AND aiPrivacyTransform
+  // exists. Both used to fall through to the generic stub, so every turn failed
+  // with "AI privacy protection is unavailable. No unprotected request was sent."
+  //
+  // These live here rather than in EMPTY_OBJECT_APIS because that table is called
+  // as shaped() with no arguments, which would drop the {value} payload.
+  //
+  // The host implementation is a no-op when the policy is disabled: redact and
+  // restore return the value unchanged. Android has no external MCP/tool bridge,
+  // so there is no outbound context to redact and "disabled" is the accurate
+  // report, not a bypass.
+  aiPrivacyStatus: async () => ({ ok: true, enabled: false }),
+  aiPrivacyTransform: async (request: { operation?: 'redact' | 'restore'; value?: unknown }) => ({
+    ok: true,
+    value: request?.value,
+  }),
 };
 if (IS_ANDROID) {
 // Unimplemented API -> stubs whose SHAPE matches the real contract.
@@ -202,18 +221,6 @@ const EMPTY_OBJECT_APIS: Record<string, () => unknown> = {
   // SettingsAITab reads result.skills.length / .map and treats the Codex CLI as
   // absent. Shape these so the tab renders its "not available" state instead of
   // throwing on a missing field.
-  // ---- AI privacy ------------------------------------------------------------
-  // infrastructure/ai/harness/modelPrivacy.ts refuses to send anything unless
-  // aiPrivacyStatus resolves ok with a boolean `enabled`, and aiPrivacyTransform
-  // exists. Leaving both to the generic stub is a hard block: every turn failed
-  // with "AI privacy protection is unavailable. No unprotected request was sent."
-  //
-  // The host implementation (electron/shared/aiPrivacyService.cjs) is a no-op when
-  // the policy is disabled: redact/restore return the value unchanged. There is no
-  // MCP/tool bridge on Android, so there is no outbound context to redact and the
-  // disabled policy is the accurate one. Identity transform, reported honestly.
-  aiPrivacyStatus: () => ({ ok: true, enabled: false }),
-  aiPrivacyTransform: ({ value }: { value: unknown }) => ({ ok: true, value }),
   aiUserSkillsGetStatus: () => ({ ok: false, skills: [], error: 'Not available on Android' }),
   aiUserSkillsOpenFolder: () => ({ ok: false }),
   aiCodexGetStatus: () => ({ available: false, status: 'unavailable', version: null }),
