@@ -238,12 +238,49 @@ const EMPTY_OBJECT_APIS: Record<string, () => unknown> = {
     if (EMPTY_ARRAY_APIS.has(prop)) return async () => [];
     if (/^script(Get|List)[A-Z]/.test(prop) || /Runs$|List$/.test(prop)) return async () => [];
 
-    // Anything else that still looks like a getter: undefined is safer than null here,
-    // because `?? fallback` handles undefined and so do optional chains.
-    if (/^(get|list|read|load|fetch|query|detect|find|resolve)[A-Z]/.test(prop)) {
+    // ---- Shape inference for the remaining ~280 bridge methods -----------------
+    // The app has 300+ bridge methods and only a fraction are listed above. Rather
+    // than enumerate them (and get the shape wrong again), infer the container type
+    // from the method name. The rule is: never hand the renderer something it will
+    // call .filter/.map/.some/.find/.length on unless it is a real array.
+    //
+    // Plural nouns and the classic list verbs return collections.
+    // Snapshots and metrics are objects with named fields (cpu, memory, running, ...),
+    // and useMonitorHostKeyVerification reads snapshot.running directly. Check these
+    // before the plural-noun rule below, which would otherwise return an array.
+    if (/(Stats|Metrics|Snapshot|Status|Info|Usage|Summary|Overview)$/.test(prop)) {
+      return async () => ({ ok: false, available: false, running: [], error: `Not available on Android: ${prop}` });
+    }
+    if (/(List|Rules|Entries|Items|Sessions|Hosts|Profiles|Identities|Groups|Scripts|Snippets|Workspaces|Tabs|Keys|Agents|Skills|Providers|Themes|Logs|Bookmarks|Events|History|Messages|Files|Accounts|Servers|Images|Containers|Volumes|Networks|Distros|Shells)$/.test(prop)) {
+      return async () => [];
+    }
+    if (/^(list|getAll|enumerate|discover|scan|collect)[A-Z]/.test(prop)) {
+      return async () => [];
+    }
+    if (/^list/.test(prop)) return async () => [];
+
+    // Explicit capability probes.
+    if (/^(supports|check)[A-Z]/.test(prop)) return async () => false;
+
+    // Pure actions (open/close/cancel/delete/write/apply/...): resolve to undefined
+    // so nothing tries to read fields off the result.
+    if (/^(open|close|cancel|delete|remove|clear|set|apply|update|write|save|send|start|stop|kill|dispose|cleanup|resize|chmod|rename|move|copy|register|unregister|notify|dispatch|trigger|log|ack|mark|reset|refresh|reload|invalidate|warm|prewarm|preheat|emit|push|show|hide|focus|blur|navigate|scroll|select)[A-Z]/.test(prop)) {
+      return async () => undefined;
+    }
+    if (/^(open|close|cancel|delete|clear|apply|reset|refresh|reload|dispose|cleanup)$/.test(prop)) {
       return async () => undefined;
     }
 
+    // Everything else that reads like a getter/probe: undefined, never null. Null is
+    // what `?? fallback` and optional chaining are designed to ignore, but plenty of
+    // call sites use `Array.isArray(x) ? ... : []` which mis-handles it, and a truthy
+    // `{ok:false}` is worse because it enters state and then explodes on .length.
+    if (/^(get|read|load|fetch|query|detect|find|resolve|check|is|has|can|needs|should|describe|inspect|probe|validate|test|convert|transform|parse|format|build|make|create|compose|derive|compute|calculate|generate|render)[A-Z]/.test(prop)) {
+      return async () => undefined;
+    }
+
+    // Last resort: an empty, non-truthy-object result. Callers that require
+    // result.ok get a safe false; callers that expect data get undefined.
     return async () => ({ ok: false, error: `Not available on Android: ${prop}` });
   },
 });
