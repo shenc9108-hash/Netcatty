@@ -19,7 +19,9 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
+import org.bouncycastle.jce.provider.BouncyCastleProvider
 import java.io.InputStreamReader
+import java.security.Security
 import java.security.KeyStore
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
@@ -35,6 +37,23 @@ private const val ENC_PREFIX = "enc:v1:"
 private const val MAX_OUT = 200_000
 
 private class SshSess(val client: SSHClient, val session: Session, val shell: Session.Shell)
+
+/**
+ * Android has no native X25519 / Ed25519 JCE implementation, so sshj's transport
+ * init fails with:
+ *   Failed to start SSH: no such algorithm: X25519 for provider BC
+ * Installing BouncyCastle gives the JCE the curves sshj already advertises. It must
+ * run before the first SSHClient is constructed.
+ */
+private val bouncyCastleReady: Boolean by lazy {
+    // Android ships a stripped-down provider already registered under the name "BC".
+    // Security.addProvider() would be a no-op in that case and sshj would keep hitting
+    // an implementation without X25519, so replace it outright and put the full
+    // BouncyCastle first in the provider chain.
+    Security.removeProvider(BouncyCastleProvider.PROVIDER_NAME)
+    Security.insertProviderAt(BouncyCastleProvider(), 1)
+    true
+}
 
 @CapacitorPlugin(name = "NetcattyNative")
 class NetcattyNativePlugin : Plugin() {
@@ -160,6 +179,9 @@ class NetcattyNativePlugin : Plugin() {
 
     // ───────────── SSH ─────────────
     private fun connect(o: PluginCall): SSHClient {
+        // Touch the lazy property so the provider is installed before sshj resolves
+        // the key-exchange algorithm. Cheap after the first call.
+        bouncyCastleReady
         val cl = SSHClient()
         cl.addHostKeyVerifier(PromiscuousVerifier()) // TODO: known_hosts pinning (self-use shortcut)
         cl.connectTimeout = 15000
