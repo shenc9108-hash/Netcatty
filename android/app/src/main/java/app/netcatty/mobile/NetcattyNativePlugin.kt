@@ -13,6 +13,12 @@ import net.schmizz.sshj.SSHClient
 import net.schmizz.sshj.connection.channel.direct.Session
 import net.schmizz.sshj.transport.verification.PromiscuousVerifier
 import net.schmizz.sshj.userauth.password.PasswordUtils
+import net.schmizz.sshj.userauth.UserAuthException
+import net.schmizz.sshj.userauth.method.AuthKeyboardInteractive
+import net.schmizz.sshj.userauth.method.AuthPassword
+import net.schmizz.sshj.userauth.method.PasswordResponseProvider
+import net.schmizz.sshj.userauth.password.PasswordFinder
+import net.schmizz.sshj.userauth.password.Resource
 import okhttp3.Call
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -194,7 +200,22 @@ class NetcattyNativePlugin : Plugin() {
             val kp = if (pass.isNullOrEmpty()) cl.loadKeys(pk, null, null)
                      else cl.loadKeys(pk, null, PasswordUtils.createOneOff(pass.toCharArray()))
             cl.authPublickey(user, kp)
-        } else cl.authPassword(user, o.getString("password") ?: "")
+        } else {
+            // Desktop (ssh2) falls back to keyboard-interactive when the server turns plain password
+            // auth off (common on cloud images / PAM setups). sshj's authPassword() does not, which
+            // surfaced as "Exhausted available authentication methods". Offer both in one attempt.
+            val pw = o.getString("password") ?: ""
+            val finder = object : PasswordFinder {
+                override fun reqPassword(resource: Resource<*>?): CharArray = pw.toCharArray()
+                override fun shouldRetry(resource: Resource<*>?): Boolean = false
+            }
+            try {
+                cl.auth(user, AuthPassword(finder), AuthKeyboardInteractive(PasswordResponseProvider(finder)))
+            } catch (e: UserAuthException) {
+                val hint = if (pw.isEmpty()) " No password is stored for this host on the phone." else ""
+                throw Exception("Authentication failed for $user (tried password and keyboard-interactive): ${e.cause?.message ?: e.message}.$hint", e)
+            }
+        }
         return cl
     }
 
