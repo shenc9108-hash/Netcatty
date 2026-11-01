@@ -121,20 +121,80 @@ const impl: Record<string, any> = {
   onSessionData: (sessionId: string, cb: Cb) => subscribe('sshData', sessionId, (p) => cb(p.data)),
   onSessionExit: (sessionId: string, cb: Cb) => subscribe('sshExit', sessionId, (p) => cb(p)),
 };
-
 if (IS_ANDROID) {
-// Unimplemented API -> harmless stubs so the UI never crashes on a missing method.
-// Getter-style calls resolve to null/false (callers usually guard with ?? / ||), others to {ok:false}.
+// Unimplemented API -> stubs whose SHAPE matches the real contract.
+//
+// History: this used to return `null` for every get*-style call and `{ok:false}` otherwise.
+// That crashed the UI on APIs whose callers treat the result as a collection:
+//   getPluginThemes().themes.find(...)        -> Cannot read properties of null (reading 'find')
+//   getHostBrowserBookmarks().map(...)        -> Cannot read properties of null (reading 'map')
+//   getPluginContributions().plugins.length   -> Cannot read properties of null (reading 'length')
+// The renderer has no reason to null-guard an API that is declared to return a collection,
+// so the stub must return the empty collection, not null.
 const warned = new Set<string>();
+
+// Empty value with the right container type for a known collection-returning API.
+const EMPTY_ARRAY_APIS = new Set([
+  'getHostBrowserBookmarks',
+  'getPluginThemes',
+  'getPluginContributions',
+  'getPluginCatalog',
+  'getPluginInstalledList',
+  'listPluginExtensionProviders',
+  'getKnownHosts',
+  'getSnippets',
+  'getScripts',
+  'getIdentities',
+  'getGroups',
+  'getProxyProfiles',
+  'getPortForwardRules',
+  'getWorkspaces',
+  'getSessionList',
+  'getEditorTabs',
+  'getRecentHosts',
+]);
+
+// Structured empty snapshots for APIs whose callers read named fields.
+const EMPTY_OBJECT_APIS: Record<string, () => unknown> = {
+  getPluginThemes: () => ({ themes: [], themePacks: [], selection: { revision: 0, mode: 'light', choice: null }, packs: [] }),
+  getPluginContributions: () => ({ locale: 'en', plugins: [], revision: 0 }),
+  getPluginPermissions: () => ({ granted: [], denied: [], revision: 0 }),
+  getPluginLogStatus: () => ({ entries: [], level: 'info' }),
+  getPluginScopeCatalog: () => ({ scopes: [], revision: 0 }),
+  getAppInfo: () => ({ version: '0.0.0', platform: 'android', arch: 'arm64', isPackaged: true }),
+  getSystemInfo: () => ({ platform: 'android', arch: 'arm64', cpus: [], totalmem: 0, freemem: 0 }),
+  getUpdateStatus: () => ({ status: 'not-available', available: false }),
+};
+
 (window as any).netcatty = new Proxy(impl, {
   get(target, prop: string) {
     if (prop in target) return target[prop];
     if (typeof prop !== 'string') return undefined;
-    if (!warned.has(prop)) { warned.add(prop); console.warn('[android] netcatty.' + prop + ' not implemented'); }
+    if (!warned.has(prop)) {
+      warned.add(prop);
+      console.warn('[android] netcatty.' + prop + ' not implemented');
+    }
+
+    // Event subscriptions: return an unsubscribe function.
     if (/^on[A-Z]/.test(prop)) return () => () => {};
+
+    // Boolean probes.
     if (/^(is|has|can)[A-Z]/.test(prop)) return async () => false;
+
+    // APIs with a known structured-empty response.
+    const shaped = EMPTY_OBJECT_APIS[prop];
+    if (shaped) return async () => shaped();
+
+    // Known collection APIs -> [].
+    if (EMPTY_ARRAY_APIS.has(prop)) return async () => [];
     if (/^script(Get|List)[A-Z]/.test(prop) || /Runs$|List$/.test(prop)) return async () => [];
-    if (/^(get|list|read|load|fetch|query|detect|find|resolve)[A-Z]/.test(prop)) return async () => null;
+
+    // Anything else that still looks like a getter: undefined is safer than null here,
+    // because `?? fallback` handles undefined and so do optional chains.
+    if (/^(get|list|read|load|fetch|query|detect|find|resolve)[A-Z]/.test(prop)) {
+      return async () => undefined;
+    }
+
     return async () => ({ ok: false, error: `Not available on Android: ${prop}` });
   },
 });
