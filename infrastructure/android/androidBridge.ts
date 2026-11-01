@@ -91,7 +91,11 @@ const impl: Record<string, any> = {
   // resolves {statusCode,statusText} once headers arrive; body arrives via events
   aiChatStream: (requestId: string, url: string, headers: Record<string, string>, body: string,
                  providerId?: string, idleTimeoutMs?: number) =>
-    Native.aiChatStream({ requestId, url, headers, body, providerId, idleTimeoutMs: idleTimeoutMs ?? 120000 }),
+    // The renderer treats a missing `ok` as failure ("Stream request failed"), but the native side
+    // only returns {statusCode,statusText} once headers arrive -> add ok:true here.
+    Native.aiChatStream({ requestId, url, headers, body, providerId, idleTimeoutMs: idleTimeoutMs ?? 120000 })
+      .then((r: any) => ({ ok: true, ...r }))
+      .catch((e: any) => ({ ok: false, error: e?.message ?? String(e) })),
   aiChatCancel: (requestId: string) => Native.aiChatCancel({ requestId }),
   onAiStreamData: (id: string, cb: Cb) => subscribe('aiStreamData', id, (p) => cb(p.data)),
   onAiStreamEnd: (id: string, cb: Cb) => subscribe('aiStreamEnd', id, () => cb(undefined)),
