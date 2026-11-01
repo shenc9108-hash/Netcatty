@@ -202,6 +202,18 @@ const EMPTY_OBJECT_APIS: Record<string, () => unknown> = {
   // SettingsAITab reads result.skills.length / .map and treats the Codex CLI as
   // absent. Shape these so the tab renders its "not available" state instead of
   // throwing on a missing field.
+  // ---- AI privacy ------------------------------------------------------------
+  // infrastructure/ai/harness/modelPrivacy.ts refuses to send anything unless
+  // aiPrivacyStatus resolves ok with a boolean `enabled`, and aiPrivacyTransform
+  // exists. Leaving both to the generic stub is a hard block: every turn failed
+  // with "AI privacy protection is unavailable. No unprotected request was sent."
+  //
+  // The host implementation (electron/shared/aiPrivacyService.cjs) is a no-op when
+  // the policy is disabled: redact/restore return the value unchanged. There is no
+  // MCP/tool bridge on Android, so there is no outbound context to redact and the
+  // disabled policy is the accurate one. Identity transform, reported honestly.
+  aiPrivacyStatus: () => ({ ok: true, enabled: false }),
+  aiPrivacyTransform: ({ value }: { value: unknown }) => ({ ok: true, value }),
   aiUserSkillsGetStatus: () => ({ ok: false, skills: [], error: 'Not available on Android' }),
   aiUserSkillsOpenFolder: () => ({ ok: false }),
   aiCodexGetStatus: () => ({ available: false, status: 'unavailable', version: null }),
