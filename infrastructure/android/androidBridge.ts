@@ -5,6 +5,7 @@
  * Import this BEFORE React mounts:  import './androidBridge';  at top of index.tsx
  */
 import { Capacitor, registerPlugin } from '@capacitor/core';
+import { forgetServerStats, getServerStats, getSessionDistroInfo } from './serverStats';
 
 type Cb<T = any> = (v: T) => void;
 const IS_ANDROID = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android';
@@ -120,7 +121,10 @@ const impl: Record<string, any> = {
   startSSHSession: (options: any) => Native.sshStart(options).then((r: any) => r.sessionId),
   writeToSession: (sessionId: string, data: string) => { Native.sshWrite({ sessionId, data }); },
   resizeSession: (sessionId: string, cols: number, rows: number) => { Native.sshResize({ sessionId, cols, rows }); },
-  closeSession: (sessionId: string) => Native.sshClose({ sessionId }),
+  closeSession: (sessionId: string) => { forgetServerStats(sessionId); return Native.sshClose({ sessionId }); },
+  // Host info bar (CPU / memory / disk / network): same Linux probes as desktop, over an exec channel.
+  getServerStats: (sessionId: string) => getServerStats(sessionId, (p) => Native.sshExec(p)),
+  getSessionDistroInfo: (sessionId: string) => getSessionDistroInfo(sessionId, (p) => Native.sshExec(p)),
   execCommand: (options: any) => Native.sshExec({ ...options, timeoutMs: options?.timeoutMs ?? 60000 }),
   onSessionData: (sessionId: string, cb: Cb) => subscribe('sshData', sessionId, (p) => cb(p.data)),
   onSessionExit: (sessionId: string, cb: Cb) => subscribe('sshExit', sessionId, (p) => cb(p)),
