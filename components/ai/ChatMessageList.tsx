@@ -832,7 +832,7 @@ const ChatMessageList: React.FC<ChatMessageListProps> = ({
                     response into a new session. Only on safe boundaries; hidden
                     while a turn streams (forkableMessageIds empty). */}
                 {!isUser && onForkFromMessage && forkableMessageIds.has(message.id) && (
-                  <div className="flex -mt-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100">
+                  <div className="flex -mt-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 [.android_&]:opacity-100">
                     <button
                       type="button"
                       onClick={() => onForkFromMessage(message.id)}

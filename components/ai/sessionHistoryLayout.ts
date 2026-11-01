@@ -3,5 +3,5 @@ export const SESSION_HISTORY_ROW_CLASSNAMES = {
   title: 'text-[13px] truncate min-w-0',
   meta: 'flex items-center gap-2 justify-self-end shrink-0',
   time: 'text-[12px] text-muted-foreground/50 whitespace-nowrap',
-  deleteButton: 'opacity-0 group-hover:opacity-100 p-0.5 hover:text-destructive transition-all cursor-pointer shrink-0',
+  deleteButton: 'opacity-0 group-hover:opacity-100 [.android_&]:opacity-100 [.android_&]:p-2 p-0.5 hover:text-destructive transition-all cursor-pointer shrink-0',
 } as const;

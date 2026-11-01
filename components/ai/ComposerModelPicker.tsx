@@ -103,7 +103,7 @@ const ModelRow: React.FC<{
       className={`absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-0.5 transition-opacity ${
         pinned
           ? 'text-amber-400/90 opacity-100'
-          : 'text-muted-foreground/45 opacity-0 group-hover/row:opacity-100 hover:text-foreground/70'
+          : 'text-muted-foreground/45 opacity-0 group-hover/row:opacity-100 [.android_&]:opacity-100 hover:text-foreground/70'
       }`}
     >
       <Star size={11} fill={pinned ? 'currentColor' : 'none'} />
