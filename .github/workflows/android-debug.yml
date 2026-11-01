@@ -1,0 +1,32 @@
+name: Android debug APK
+on:
+  workflow_dispatch:
+  push:
+    branches: [android-port]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 21 }
+      - uses: android-actions/setup-android@v3
+      - name: Install web deps (skip electron native rebuilds)
+        run: |
+          npm install --ignore-scripts --no-audit --no-fund
+          for f in scripts/patch-xterm-*.cjs; do node "$f" || true; done
+      - name: Build web bundle
+        run: npx vite build
+        env: { NODE_OPTIONS: --max-old-space-size=6144 }
+      - name: Sync Capacitor
+        run: npx cap sync android
+      - name: Build APK
+        working-directory: android
+        run: chmod +x gradlew && ./gradlew assembleDebug --stacktrace
+      - uses: actions/upload-artifact@v4
+        with:
+          name: netcatty-android-debug
+          path: android/app/build/outputs/apk/debug/*.apk
