@@ -872,3 +872,18 @@ test("SFTP context action reuses the pane toolbar handler and its availability",
   assert.match(terminalSource, /onOpenSFTP=\{handleOpenSFTP\}/);
   assert.match(terminalSource, /<TerminalView ctx=\{\{[^\n]*handleOpenSFTP,/);
 });
+
+test("phone stats strip pushes the terminal down only while the host bar is visible and search is closed", () => {
+  assert.deepEqual(
+    resolveTerminalTopOffsets({ showHostInfoBar: true, isSearchOpen: false, statsStripHeight: 18 }),
+    { toolbarOffset: 48, contentTop: "52px" },
+  );
+  assert.deepEqual(
+    resolveTerminalTopOffsets({ showHostInfoBar: false, isSearchOpen: false, statsStripHeight: 18 }),
+    { toolbarOffset: 0, contentTop: "4px" },
+  );
+  assert.deepEqual(
+    resolveTerminalTopOffsets({ showHostInfoBar: true, isSearchOpen: true, statsStripHeight: 18 }),
+    { toolbarOffset: 64, contentTop: "68px" },
+  );
+});

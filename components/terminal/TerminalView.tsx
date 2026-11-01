@@ -436,13 +436,17 @@ export function resolveTerminalTopOffsets({
   isSearchOpen,
   terminalBodyInset = 4,
   networkDeviceTipHeight = 0,
+  statsStripHeight = 0,
 }: {
   showHostInfoBar: boolean;
   isSearchOpen: boolean;
   terminalBodyInset?: number;
   networkDeviceTipHeight?: number;
+  /** Phone-only second row under the toolbar that holds the server-stats chips. */
+  statsStripHeight?: number;
 }): { toolbarOffset: number; contentTop: string } {
-  const toolbarOffset = isSearchOpen ? 64 : showHostInfoBar ? 30 : 0;
+  const toolbarOffset = (isSearchOpen ? 64 : showHostInfoBar ? 30 : 0)
+    + (showHostInfoBar && !isSearchOpen ? statsStripHeight : 0);
   return {
     toolbarOffset,
     // The tip strip stacks directly below the toolbar, so the terminal
@@ -507,6 +511,21 @@ function TerminalViewInner({ ctx, isPaneMagnified = false }: { ctx: TerminalView
   });
   const terminalBodyInset = 4;
   const showHostInfoBar = terminalSettings?.showHostInfoBar !== false;
+  // On phones the toolbar's action buttons use the whole row, so the stats chips are squeezed to
+  // zero width. Give them their own strip under the toolbar instead.
+  const [isPhoneWidth, setIsPhoneWidth] = React.useState(
+    () => typeof window !== "undefined" && !!window.matchMedia?.("(max-width: 640px)").matches,
+  );
+  React.useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const mq = window.matchMedia("(max-width: 640px)");
+    const onChange = () => setIsPhoneWidth(mq.matches);
+    mq.addEventListener?.("change", onChange);
+    return () => mq.removeEventListener?.("change", onChange);
+  }, []);
+  const showPhoneStatsStrip = showHostInfoBar && isPhoneWidth && isSupportedOs
+    && (terminalSettings?.showServerStats ?? true);
+  const PHONE_STATS_STRIP_HEIGHT = 18;
 
   // One-line "enable Network Device Mode" tip. The persisted once-per-host
   // lifecycle, eligibility, and cross-pane/window sync live in the application
@@ -564,6 +583,7 @@ function TerminalViewInner({ ctx, isPaneMagnified = false }: { ctx: TerminalView
     isSearchOpen,
     terminalBodyInset,
     networkDeviceTipHeight: showNetworkDeviceTip ? NETWORK_DEVICE_TIP_HEIGHT : 0,
+    statsStripHeight: showPhoneStatsStrip ? PHONE_STATS_STRIP_HEIGHT : 0,
   });
   const terminalRightInset = resolveTerminalRightInset({
     showHostInfoBar,
@@ -944,7 +964,7 @@ function TerminalViewInner({ ctx, isPaneMagnified = false }: { ctx: TerminalView
                     </>
                   )}
                 </div>
-                {showHostInfoBar && !compactToolbar && (
+                {showHostInfoBar && !compactToolbar && !showPhoneStatsStrip && (
                   <TerminalServerStats
                     sessionId={sessionId}
                     enabled={(terminalSettings?.showServerStats ?? true) && isVisible}
@@ -1132,6 +1152,26 @@ function TerminalViewInner({ ctx, isPaneMagnified = false }: { ctx: TerminalView
               </div>
             );
           })()}
+          {showPhoneStatsStrip && !isSearchOpen && (
+            <div
+              className="pointer-events-auto flex items-center px-2 overflow-x-auto overflow-y-hidden whitespace-nowrap border-t [&>.terminal-server-stats]:ml-0 [&>.terminal-server-stats]:shrink-0 [&>.terminal-server-stats]:overflow-visible"
+              style={{
+                height: PHONE_STATS_STRIP_HEIGHT,
+                backgroundColor: 'var(--terminal-ui-bg)',
+                color: 'var(--terminal-ui-fg)',
+                borderColor: 'var(--terminal-ui-border)',
+              }}
+              data-section="terminal-stats-strip"
+            >
+              <TerminalServerStats
+                sessionId={sessionId}
+                enabled={isVisible}
+                refreshInterval={terminalSettings?.serverStatsRefreshInterval ?? 5}
+                isSupportedOs={isSupportedOs}
+                isConnected={status === 'connected'}
+              />
+            </div>
+          )}
           {isSearchOpen && (
             <div className="pointer-events-auto">
               <TerminalSearchBar
