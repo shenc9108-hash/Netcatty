@@ -56,6 +56,17 @@ const impl: Record<string, any> = {
   getJmsDeepLinkEnabled: async () => false,
   getAutoLaunch: async () => false,
 
+  // ---------- Features that do not exist on Android ----------
+  // monitorSnapshot MUST reject: the renderer catches that and shows "monitor unavailable".
+  // Resolving to the generic {ok:false} stub put a snapshot without `running` into the store and
+  // crashed the first render (useMonitorHostKeyVerification: snapshot.running.length).
+  monitorSnapshot: () => Promise.reject(new Error('monitor not available on Android')),
+  monitorUpdate: async () => undefined,
+  getPortForwardSnapshot: () => Promise.reject(new Error('port forwarding not available on Android')),
+  subscribePortForwardRuntime: () => Promise.reject(new Error('port forwarding not available on Android')),
+  discoverShells: async () => [],
+  credentialsAvailable: async () => true,
+
   // ---------- credentials (Android Keystore, AES-GCM, "enc:v1:" prefix) ----------
   credentialsEncrypt: (plaintext: string) =>
     Native.credentialsEncrypt({ plaintext }).then((r: any) => r.value),
